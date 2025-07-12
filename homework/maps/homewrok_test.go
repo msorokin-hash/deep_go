@@ -9,32 +9,113 @@ import (
 
 // go test -v homework_test.go
 
+type TreeNode struct {
+	Key   int
+	Val   int
+	Left  *TreeNode
+	Right *TreeNode
+}
+
 type OrderedMap struct {
-	// need to implement
+	root *TreeNode
+	size int
 }
 
 func NewOrderedMap() OrderedMap {
-	return OrderedMap{} // need to implement
+	return OrderedMap{}
 }
 
 func (m *OrderedMap) Insert(key, value int) {
-	// need to implement
+	m.root = m.insertNode(m.root, key, value)
+	m.size++
+}
+
+func (m *OrderedMap) insertNode(root *TreeNode, key int, value int) *TreeNode {
+	if root == nil {
+		return &TreeNode{Key: key, Val: value}
+	}
+
+	if key < root.Key {
+		root.Left = m.insertNode(root.Left, key, value)
+	} else if key > root.Key {
+		root.Right = m.insertNode(root.Right, key, value)
+	} else {
+		root.Val = value
+		m.size--
+	}
+
+	return root
 }
 
 func (m *OrderedMap) Erase(key int) {
-	// need to implement
+	if m.Contains(key) {
+		m.root = m.deleteNode(m.root, key)
+		m.size--
+	}
+}
+
+func (m *OrderedMap) deleteNode(root *TreeNode, key int) *TreeNode {
+	if root == nil {
+		return nil
+	}
+
+	if key < root.Key {
+		root.Left = m.deleteNode(root.Left, key)
+	} else if key > root.Key {
+		root.Right = m.deleteNode(root.Right, key)
+	} else {
+		if root.Left == nil {
+			return root.Right
+		}
+		if root.Right == nil {
+			return root.Left
+		}
+
+		minNode := m.findMin(root.Right)
+		root.Key = minNode.Key
+		root.Val = minNode.Val
+		root.Right = m.deleteNode(root.Right, minNode.Key)
+	}
+
+	return root
+}
+
+func (m *OrderedMap) findMin(node *TreeNode) *TreeNode {
+	current := node
+	for current.Left != nil {
+		current = current.Left
+	}
+	return current
 }
 
 func (m *OrderedMap) Contains(key int) bool {
-	return false // need to implement
+	return m.findNode(m.root, key) != nil
+}
+
+func (m *OrderedMap) findNode(node *TreeNode, key int) *TreeNode {
+	if node == nil || node.Key == key {
+		return node
+	}
+	if key < node.Key {
+		return m.findNode(node.Left, key)
+	}
+	return m.findNode(node.Right, key)
 }
 
 func (m *OrderedMap) Size() int {
-	return 0 // need to implement
+	return m.size
 }
 
 func (m *OrderedMap) ForEach(action func(int, int)) {
-	// need to implement
+	m.inOrder(m.root, action)
+}
+
+func (m *OrderedMap) inOrder(node *TreeNode, action func(int, int)) {
+	if node != nil {
+		m.inOrder(node.Left, action)
+		action(node.Key, node.Val)
+		m.inOrder(node.Right, action)
+	}
 }
 
 func TestCircularQueue(t *testing.T) {
