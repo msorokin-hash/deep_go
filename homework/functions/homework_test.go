@@ -11,6 +11,9 @@ func Map(data []int, action func(int) int) []int {
 	if data == nil {
 		return nil
 	}
+	if len(data) == 0 {
+		return []int{}
+	}
 
 	filtered := make([]int, 0, len(data))
 	for _, number := range data {
@@ -23,6 +26,9 @@ func Map(data []int, action func(int) int) []int {
 func Filter(data []int, predicate func(int) bool) []int {
 	if data == nil {
 		return nil
+	}
+	if len(data) == 0 {
+		return []int{}
 	}
 
 	filtered := make([]int, 0, len(data))
