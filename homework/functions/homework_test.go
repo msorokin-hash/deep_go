@@ -8,18 +8,39 @@ import (
 )
 
 func Map(data []int, action func(int) int) []int {
-	// need to implement
-	return nil
+	if data == nil {
+		return nil
+	}
+
+	filtered := make([]int, 0, len(data))
+	for _, number := range data {
+		filtered = append(filtered, action(number))
+	}
+
+	return filtered
 }
 
-func Filter(data []int, action func(int) bool) []int {
-	// need to implement
-	return nil
+func Filter(data []int, predicate func(int) bool) []int {
+	if data == nil {
+		return nil
+	}
+
+	filtered := make([]int, 0, len(data))
+	for _, number := range data {
+		if predicate(number) {
+			filtered = append(filtered, number)
+		}
+	}
+
+	return filtered
 }
 
 func Reduce(data []int, initial int, action func(int, int) int) int {
-	// need to implement
-	return 0
+	for _, number := range data {
+		initial = action(initial, number)
+	}
+
+	return initial
 }
 
 func TestMap(t *testing.T) {
