@@ -10,81 +10,139 @@ import (
 
 type Option func(*GamePerson)
 
-func WithName(name string) func(*GamePerson) {
-	return func(person *GamePerson) {
-		// need to implement
+func WithName(name string) Option {
+	return func(p *GamePerson) {
+		copy(p.name[:], name)
 	}
 }
 
-func WithCoordinates(x, y, z int) func(*GamePerson) {
-	return func(person *GamePerson) {
-		// need to implement
+func WithCoordinates(x, y, z int) Option {
+	return func(p *GamePerson) {
+		p.x = int32(x)
+		p.y = int32(y)
+		p.z = int32(z)
 	}
 }
 
-func WithGold(gold int) func(*GamePerson) {
-	return func(person *GamePerson) {
-		// need to implement
+func WithGold(gold int) Option {
+	return func(p *GamePerson) {
+		p.gold = uint32(gold)
 	}
 }
 
-func WithMana(mana int) func(*GamePerson) {
-	return func(person *GamePerson) {
-		// need to implement
+func WithMana(mana int) Option {
+	return func(p *GamePerson) {
+		if mana < 0 {
+			mana = 0
+		} else if mana > 1000 {
+			mana = 1000
+		}
+
+		raw := uint32(p.manaHealth[0]) |
+			uint32(p.manaHealth[1])<<8 |
+			uint32(p.manaHealth[2])<<16
+
+		raw &^= 0x3FF
+		raw |= uint32(mana) & 0x3FF
+
+		p.manaHealth[0] = byte(raw)
+		p.manaHealth[1] = byte(raw >> 8)
+		p.manaHealth[2] = byte(raw >> 16)
 	}
 }
 
-func WithHealth(health int) func(*GamePerson) {
-	return func(person *GamePerson) {
-		// need to implement
+func WithHealth(health int) Option {
+	return func(p *GamePerson) {
+		if health < 0 {
+			health = 0
+		} else if health > 1000 {
+			health = 1000
+		}
+
+		raw := uint32(p.manaHealth[0]) |
+			uint32(p.manaHealth[1])<<8 |
+			uint32(p.manaHealth[2])<<16
+
+		raw &^= 0x3FF << 10
+		raw |= (uint32(health) & 0x3FF) << 10
+
+		p.manaHealth[0] = byte(raw)
+		p.manaHealth[1] = byte(raw >> 8)
+		p.manaHealth[2] = byte(raw >> 16)
 	}
 }
 
-func WithRespect(respect int) func(*GamePerson) {
-	return func(person *GamePerson) {
-		// need to implement
+func WithRespect(respect int) Option {
+	return func(p *GamePerson) {
+		if respect < 0 {
+			respect = 0
+		} else if respect > 10 {
+			respect = 10
+		}
+		p.attrs &^= 0xF000
+		p.attrs |= uint16(respect) << 12
 	}
 }
 
-func WithStrength(strength int) func(*GamePerson) {
-	return func(person *GamePerson) {
-		// need to implement
+func WithStrength(strength int) Option {
+	return func(p *GamePerson) {
+		if strength < 0 {
+			strength = 0
+		} else if strength > 10 {
+			strength = 10
+		}
+		p.attrs &^= 0x0F00
+		p.attrs |= uint16(strength) << 8
 	}
 }
 
-func WithExperience(experience int) func(*GamePerson) {
-	return func(person *GamePerson) {
-		// need to implement
+func WithExperience(experience int) Option {
+	return func(p *GamePerson) {
+		if experience < 0 {
+			experience = 0
+		} else if experience > 10 {
+			experience = 10
+		}
+		p.attrs &^= 0x00F0
+		p.attrs |= uint16(experience) << 4
 	}
 }
 
-func WithLevel(level int) func(*GamePerson) {
-	return func(person *GamePerson) {
-		// need to implement
+func WithLevel(level int) Option {
+	return func(p *GamePerson) {
+		if level < 0 {
+			level = 0
+		} else if level > 10 {
+			level = 10
+		}
+		p.attrs &^= 0x000F
+		p.attrs |= uint16(level)
 	}
 }
 
-func WithHouse() func(*GamePerson) {
-	return func(person *GamePerson) {
-		// need to implement
+func WithHouse() Option {
+	return func(p *GamePerson) {
+		p.params |= 0b0100
 	}
 }
 
-func WithGun() func(*GamePerson) {
-	return func(person *GamePerson) {
-		// need to implement
+func WithGun() Option {
+	return func(p *GamePerson) {
+		p.params |= 0b0010
 	}
 }
 
-func WithFamily() func(*GamePerson) {
-	return func(person *GamePerson) {
-		// need to implement
+func WithFamily() Option {
+	return func(p *GamePerson) {
+		p.params |= 0b0001
 	}
 }
 
-func WithType(personType int) func(*GamePerson) {
-	return func(person *GamePerson) {
-		// need to implement
+func WithType(personType int) Option {
+	return func(p *GamePerson) {
+		typeVal := (uint8(personType) & 0x3) << 4
+		p.params &^= 0b00110000
+		p.params |= typeVal
 	}
 }
 
@@ -95,87 +153,86 @@ const (
 )
 
 type GamePerson struct {
-	// need to implement
+	x, y, z    int32    // 12 байт: координаты X, Y, Z (диапазон [-2_000_000_000…2_000_000_000])
+	gold       uint32   // 4 байта: золото (диапазон [0…2_000_000_000])
+	manaHealth [3]byte  // 3 байта: мана (биты 0-9, [0…1000]), здоровье (биты 10-19, [0…1000])
+	params     uint8    // 1 байт: флаги (биты 0-2: HasHouse, HasWeapon, HasFamily)
+	attrs      uint16   // 2 байта: Respect (биты 0-3), Strength (биты 4-7), Experience (биты 8-11), Level (биты 12-15), диапазон [0…10]
+	name       [42]byte // 42 байта: имя пользователя (ASCII, до 42 символов)
 }
 
 func NewGamePerson(options ...Option) GamePerson {
-	// need to implement
-	return GamePerson{}
+	var g = GamePerson{}
+	for _, option := range options {
+		option(&g)
+	}
+	return g
 }
 
 func (p *GamePerson) Name() string {
-	// need to implement
-	return ""
+	n := 0
+	for n < len(p.name) && p.name[n] != 0 {
+		n++
+	}
+	return string(p.name[:n])
 }
 
 func (p *GamePerson) X() int {
-	// need to implement
-	return 0
+	return int(p.x)
 }
 
 func (p *GamePerson) Y() int {
-	// need to implement
-	return 0
+	return int(p.y)
 }
 
 func (p *GamePerson) Z() int {
-	// need to implement
-	return 0
+	return int(p.z)
 }
 
 func (p *GamePerson) Gold() int {
-	// need to implement
-	return 0
+	return int(p.gold)
 }
 
 func (p *GamePerson) Mana() int {
-	// need to implement
-	return 0
+	v := uint32(p.manaHealth[0]) | (uint32(p.manaHealth[1]) << 8) | (uint32(p.manaHealth[2]) << 16)
+	return int(v & 0x3FF)
 }
 
 func (p *GamePerson) Health() int {
-	// need to implement
-	return 0
+	v := uint32(p.manaHealth[0]) | (uint32(p.manaHealth[1]) << 8) | (uint32(p.manaHealth[2]) << 16)
+	return int((v >> 10) & 0x3FF)
 }
 
 func (p *GamePerson) Respect() int {
-	// need to implement
-	return 0
+	return int(p.attrs & 0xF000 >> 12)
 }
 
 func (p *GamePerson) Strength() int {
-	// need to implement
-	return 0
+	return int(p.attrs & 0xF00 >> 8)
 }
 
 func (p *GamePerson) Experience() int {
-	// need to implement
-	return 0
+	return int(p.attrs & 0xF0 >> 4)
 }
 
 func (p *GamePerson) Level() int {
-	// need to implement
-	return 0
+	return int(p.attrs & 0xF)
 }
 
 func (p *GamePerson) HasHouse() bool {
-	// need to implement
-	return false
+	return (p.params & 0b0100) == 0b0100
 }
 
 func (p *GamePerson) HasGun() bool {
-	// need to implement
-	return false
+	return (p.params & 0b0010) == 0b0010
 }
 
 func (p *GamePerson) HasFamilty() bool {
-	// need to implement
-	return false
+	return (p.params & 0b0001) == 0b0001
 }
 
 func (p *GamePerson) Type() int {
-	// need to implement
-	return 0
+	return int(p.params & 0xF0 >> 4)
 }
 
 func TestGamePerson(t *testing.T) {
