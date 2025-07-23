@@ -1,6 +1,8 @@
 package main
 
 import (
+	"fmt"
+	"sync"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -9,30 +11,44 @@ import (
 // go test -v homework_test.go
 
 type UserService struct {
-	// not need to implement
 	NotEmptyStruct bool
 }
+
 type MessageService struct {
-	// not need to implement
 	NotEmptyStruct bool
 }
 
 type Container struct {
-	// need to implement
+	mu           sync.RWMutex
+	constructors map[string]interface{}
 }
 
 func NewContainer() *Container {
-	// need to implement
-	return &Container{}
+	return &Container{
+		constructors: make(map[string]interface{}),
+	}
 }
 
 func (c *Container) RegisterType(name string, constructor interface{}) {
-	// need to implement
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.constructors[name] = constructor
 }
 
 func (c *Container) Resolve(name string) (interface{}, error) {
-	// need to implement
-	return nil, nil
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+
+	constructor, ok := c.constructors[name]
+	if !ok {
+		return nil, fmt.Errorf("dependency not found: %s", name)
+	}
+
+	if fn, ok := constructor.(func() interface{}); ok {
+		return fn(), nil
+	}
+
+	return constructor, nil
 }
 
 func TestDIContainer(t *testing.T) {
