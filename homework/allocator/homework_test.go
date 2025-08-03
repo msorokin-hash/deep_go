@@ -8,10 +8,53 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-// go test -v homework_test.go
-
 func Defragment(memory []byte, pointers []unsafe.Pointer) {
-	// need to implement
+	// нечего дефрагментировать
+	if len(memory) == 0 || len(pointers) == 0 {
+		return
+	}
+
+	// считаем количество занятых ячеек памяти
+	occupied := make(map[int]bool)
+	for _, ptr := range pointers {
+		ptrAddr := uintptr(ptr)
+		baseAddr := uintptr(unsafe.Pointer(&memory[0]))
+		index := int(ptrAddr - baseAddr)
+		if index >= 0 && index < len(memory) {
+			occupied[index] = true
+		}
+	}
+
+	newPos := 0
+	posMap := make(map[int]int)
+
+	// копируем занятые ячейки в начало массива
+	for i := 0; i < len(memory); i++ {
+		if occupied[i] {
+			if i != newPos {
+				memory[newPos] = memory[i]
+				posMap[i] = newPos
+			} else {
+				posMap[i] = i
+			}
+			newPos++
+		}
+	}
+
+	// зануляем оставшиеся ячейки
+	for i := newPos; i < len(memory); i++ {
+		memory[i] = 0
+	}
+
+	// пересчитываем указатели
+	for i, ptr := range pointers {
+		ptrAddr := uintptr(ptr)
+		baseAddr := uintptr(unsafe.Pointer(&memory[0]))
+		oldIndex := int(ptrAddr - baseAddr)
+		if newIndex, exists := posMap[oldIndex]; exists {
+			pointers[i] = unsafe.Pointer(&memory[newIndex])
+		}
+	}
 }
 
 func TestDefragmentation(t *testing.T) {
